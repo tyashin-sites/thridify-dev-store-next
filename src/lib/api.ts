@@ -65,7 +65,17 @@ export async function getProductBySlug(slug: string): Promise<ApiProduct | null>
 
 export async function getRelated(slug: string, limit = 4): Promise<ApiProduct[]> {
   try {
-    return await apiFetch<ApiProduct[]>(`/products/${encodeURIComponent(slug)}/related?limit=${limit}`);
+    // This endpoint returns `{ products: [...] }` with a `thumbnailUrl` (not the full images array).
+    const data = await apiFetch<any>(`/products/${encodeURIComponent(slug)}/related?limit=${limit}`);
+    const arr: any[] = Array.isArray(data) ? data : (data?.products ?? []);
+    return arr.map((r) => ({
+      ...r,
+      images: Array.isArray(r.images) && r.images.length
+        ? r.images
+        : r.thumbnailUrl
+          ? [{ url: r.thumbnailUrl, isPrimary: true, order: 0 }]
+          : [],
+    })) as ApiProduct[];
   } catch {
     return [];
   }
