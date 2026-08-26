@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "site-thridify-dev-store-next",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "NEXT_INC_CACHE_KV",
+      "id": "a53063bf1d45488ea06b8e17685ed94e"
+    }
+  ],
+  "vars": {
+    "TYASHIN_API_URL": "https://website-api.tyashin.com",
+    "TYASHIN_STOREFRONT_URL": "https://website-api.tyashin.com/api/v1/public/ecommerce",
+    "PROJECT_ID": "6a8eb17da22ad461bb5634bd",
+    "SITE_DOMAIN": "thridifydev-website-mt9w4dmf.sites.tyashin.com",
+    "ROBOTS_NOINDEX": "true"
+  }
+}

@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Thridify brand — raw HSL channels (see tailwind.config.ts). */
+  --background: 0 0% 100%;
+  --foreground: 163 88% 6%;
+  --surface: 210 40% 97%;
+  --card: 0 0% 100%;
+  --card-foreground: 163 88% 6%;
+  --primary: 163 100% 22%; /* #007050 deep green */
+  --primary-foreground: 0 0% 100%;
+  --accent: 348 97% 87%; /* #FEBFCC soft pink */
+  --accent-foreground: 163 88% 10%;
+  --muted: 157 15% 42%; /* #5B7A6E */
+  --muted-foreground: 157 15% 42%;
+  --border: 158 17% 87%;
+  --input: 158 17% 87%;
+  --ring: 163 100% 22%;
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight text-foreground;
+  }
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+}
+
+@layer utilities {
+  .container-tight {
+    @apply mx-auto w-full max-w-[1320px] px-5 sm:px-8;
+  }
+  .thr-gradient {
+    background: radial-gradient(120% 120% at 15% 0%, hsl(163 100% 22% / 0.06) 0%, transparent 55%),
+      radial-gradient(90% 90% at 100% 0%, hsl(348 97% 87% / 0.25) 0%, transparent 45%);
+  }
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lift;
+  }
+}
