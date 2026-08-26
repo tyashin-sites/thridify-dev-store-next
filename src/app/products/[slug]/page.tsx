@@ -4,7 +4,7 @@ import { getProductBySlug, getRelated, listCategories, getStoreInfo, toView } fr
 import { ProductCard } from '@/components/ProductCard';
 import { siteConfig } from '@/lib/site';
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ slug: string }> };
 

@@ -3,7 +3,7 @@ import { listProducts, listCategories, getStoreInfo, toView } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
 import { siteConfig } from '@/lib/site';
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 type SP = { searchParams: Promise<{ category?: string }> };
 

@@ -2,7 +2,7 @@ import { listProducts, listCategories, getStoreInfo, toView } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
 import { siteConfig } from '@/lib/site';
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [store, categories, products] = await Promise.all([
