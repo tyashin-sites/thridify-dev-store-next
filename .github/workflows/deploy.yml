@@ -1,0 +1,118 @@
+name: Deploy to Cloudflare Workers
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Wrangler 4.94+ requires Node 22+. Earlier deploy.yml files baked
+          # in node-version: "20" and silently broke when wrangler bumped its
+          # engines field. Keep this in sync with Cloudflare's wrangler minimum.
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Fetch build-time env from Tyashin
+        # Pulls the project's envSecrets BEFORE the build so any SSR/RSC
+        # fetch that runs during `next build` prerender (e.g. RSC pages
+        # hitting the Tyashin API for products / categories / store-info)
+        # has TYASHIN_API_KEY + TYASHIN_API_URL + PROJECT_ID + SITE_DOMAIN
+        # in process.env. Without this, statically-prerendered pages with
+        # server-side data fetches fail with 401 Unauthorized at build time.
+        #
+        # Same endpoint is called again by the "Set Worker secrets" step
+        # post-deploy to also push these as runtime Worker secrets — the
+        # double-call is intentional: build-time process.env is separate
+        # from the Worker's runtime env binding, both must be populated.
+        run: |
+          SECRETS_JSON=$(curl -sS "${{ secrets.TYASHIN_API_URL }}/api/v1/builds/secrets/${{ github.repository }}" \
+            -H "X-Build-Secret: ${{ secrets.TYASHIN_BUILD_SECRET }}")
+
+          # Export each k/v pair into $GITHUB_ENV so subsequent steps see them.
+          # Use the multiline-safe `KEY<<EOF\nvalue\nEOF` form so values
+          # with newlines (e.g. PEM keys) survive.
+          echo "$SECRETS_JSON" | node -e "
+            const data = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+            if (!data.success || !data.data) {
+              console.error('No build-time secrets returned:', JSON.stringify(data));
+              process.exit(0); // non-fatal — let build attempt anyway
+            }
+            const fs = require('fs');
+            const ghEnv = process.env.GITHUB_ENV;
+            for (const [key, val] of Object.entries(data.data)) {
+              const v = String(val ?? '');
+              fs.appendFileSync(ghEnv, key + '<<__TYASHIN_EOF__\n' + v + '\n__TYASHIN_EOF__\n');
+              console.log('  Exposed to build env: ' + key);
+              // Also mask in logs so values don't leak from later steps
+              console.log('::add-mask::' + v);
+            }
+          "
+
+      - name: Build with OpenNext
+        run: npx @opennextjs/cloudflare build
+
+      - name: Deploy to Workers
+        id: deploy
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+
+      - name: Set Worker secrets
+        if: steps.deploy.outcome == 'success'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          # Fetch project env secrets from Tyashin API
+          SECRETS_JSON=$(curl -sS "${{ secrets.TYASHIN_API_URL }}/api/v1/builds/secrets/${{ github.repository }}" \
+            -H "X-Build-Secret: ${{ secrets.TYASHIN_BUILD_SECRET }}")
+
+          # Set each secret via wrangler (secrets take effect immediately, no redeploy needed)
+          echo "$SECRETS_JSON" | node -e "
+            const data = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+            if (data.success && data.data) {
+              for (const [key, val] of Object.entries(data.data)) {
+                const { execSync } = require('child_process');
+                execSync('echo ' + JSON.stringify(val) + ' | npx wrangler secret put ' + key, { stdio: 'pipe' });
+                console.log('Set secret: ' + key);
+              }
+            }
+          "
+
+      - name: Notify Tyashin (success)
+        if: success()
+        run: |
+          curl -sS -X POST "${{ secrets.TYASHIN_API_URL }}/api/v1/builds/webhook" \
+            -H "Content-Type: application/json" \
+            -H "X-Build-Secret: ${{ secrets.TYASHIN_BUILD_SECRET }}" \
+            -d '{
+              "repo": "${{ github.repository }}",
+              "commit_sha": "${{ github.sha }}",
+              "status": "success",
+              "run_id": "${{ github.run_id }}"
+            }'
+
+      - name: Notify Tyashin (failure)
+        if: failure()
+        run: |
+          curl -sS -X POST "${{ secrets.TYASHIN_API_URL }}/api/v1/builds/webhook" \
+            -H "Content-Type: application/json" \
+            -H "X-Build-Secret: ${{ secrets.TYASHIN_BUILD_SECRET }}" \
+            -d '{
+              "repo": "${{ github.repository }}",
+              "commit_sha": "${{ github.sha }}",
+              "status": "failed",
+              "run_id": "${{ github.run_id }}",
+              "error": "Build failed — see https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }'
