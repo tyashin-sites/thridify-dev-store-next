@@ -9,7 +9,7 @@ const nextConfig = {
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   env: {
-    NEXT_PUBLIC_TYASHIN_API_KEY: process.env.TYASHIN_API_KEY || '',
+    NEXT_PUBLIC_TYASHIN_API_KEY: process.env.TYASHIN_API_KEY || 'ak_a8CdSleuHevXEhKQveUQwWCNRgenlq4O',
     NEXT_PUBLIC_TYASHIN_API_URL: process.env.TYASHIN_API_URL || 'https://website-api.tyashin.com',
     NEXT_PUBLIC_TYASHIN_STOREFRONT_URL:
       process.env.TYASHIN_STOREFRONT_URL ||
