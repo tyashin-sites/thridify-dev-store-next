@@ -7,7 +7,7 @@ export async function Footer() {
     <footer className="mt-24 border-t border-border bg-surface/60">
       <div className="container-tight grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div className="lg:col-span-2">
-          <img src="/brand/thridify-logo.svg" alt="Thridify" className="h-7 w-auto" />
+          <img src="/brand/thridify-logo.png" alt="Thridify" className="h-7 w-auto" />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
             {siteConfig.description}
           </p>

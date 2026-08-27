@@ -6,7 +6,7 @@ export function Header() {
       <div className="container-tight flex h-16 items-center justify-between gap-4">
         <a href="/" className="flex items-center gap-2" aria-label={siteConfig.storeName}>
           {/* Thridify wordmark */}
-          <img src="/brand/thridify-logo.svg" alt="Thridify" className="h-7 w-auto" />
+          <img src="/brand/thridify-logo.png" alt="Thridify" className="h-7 w-auto" />
         </a>
 
         <nav className="hidden items-center gap-8 md:flex">
