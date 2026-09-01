@@ -51,6 +51,7 @@ const STATIC_ROUTES: SiteRoute[] = [
   { path: '/', priority: 1.0, changeFrequency: 'weekly' },
   { path: '/products', priority: 0.9, changeFrequency: 'weekly' },
   { path: '/about', priority: 0.7, changeFrequency: 'monthly' },
+  { path: '/device-compatibility', priority: 0.6, changeFrequency: 'monthly' },
   { path: '/contact', priority: 0.6, changeFrequency: 'monthly' },
 ];
 

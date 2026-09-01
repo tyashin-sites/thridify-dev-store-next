@@ -22,6 +22,7 @@ export const siteConfig = {
     { label: 'Home', href: '/' },
     { label: 'Shop', href: '/products' },
     { label: 'About', href: '/about' },
+    { label: 'Device Support', href: '/device-compatibility' },
     { label: 'Contact', href: '/contact' },
   ],
 } as const;
