@@ -3,7 +3,15 @@ import type { ProductView } from '@/lib/types';
 export function ProductCard({ p }: { p: ProductView }) {
   return (
     <a href={`/products/${p.slug}`} className="group card-hover block overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-      <div className="relative aspect-square overflow-hidden bg-surface">
+      {/* Inert Thridify listing-card marker: the platform loader promotes this
+          to a live inline 3D mount ONLY when the plugin's "Show 3D on product
+          listing cards" setting is on. Otherwise it does nothing (the poster
+          <img> below is what shows). The image box is relative/overlayable so a
+          promoted <thridify-view> fills it. */}
+      <div
+        data-thridify-card-product-id={p.productKey}
+        className="relative aspect-square overflow-hidden bg-surface"
+      >
         {p.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
