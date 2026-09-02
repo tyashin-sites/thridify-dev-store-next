@@ -66,7 +66,7 @@ export default async function ProductsPage({ searchParams }: SP) {
       ) : (
         <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
           {views.map((p) => (
-            <ProductCard key={p.slug} p={p} />
+            <ProductCard key={p.slug} p={p} enable3d />
           ))}
         </div>
       )}

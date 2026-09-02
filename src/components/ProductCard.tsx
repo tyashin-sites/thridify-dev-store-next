@@ -1,15 +1,18 @@
 import type { ProductView } from '@/lib/types';
 
-export function ProductCard({ p }: { p: ProductView }) {
+export function ProductCard({ p, enable3d = false }: { p: ProductView; enable3d?: boolean }) {
   return (
     <a href={`/products/${p.slug}`} className="group card-hover block overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-      {/* Inert Thridify listing-card marker: the platform loader promotes this
-          to a live inline 3D mount ONLY when the plugin's "Show 3D on product
-          listing cards" setting is on. Otherwise it does nothing (the poster
-          <img> below is what shows). The image box is relative/overlayable so a
-          promoted <thridify-view> fills it. */}
+      {/* Thridify listing-card marker — ONLY emitted on the listing/collection
+          grid (enable3d), never on home "featured" or PDP "related" rails, so
+          live 3D can't bleed onto those pages. When the plugin's "Show 3D on
+          product listing cards" setting is on, the loader's hover controller
+          overlays a live viewer on hover (desktop) and tears it down on leave —
+          one at a time, models load only on hover, and the overlay is
+          pointer-events:none so this <a> always navigates to the PDP. The box is
+          relative so the overlay can fill it. */}
       <div
-        data-thridify-card-product-id={p.productKey}
+        {...(enable3d ? { 'data-thridify-card-product-id': p.productKey } : {})}
         className="relative aspect-square overflow-hidden bg-surface"
       >
         {p.image ? (
