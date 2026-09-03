@@ -43,20 +43,33 @@ export default async function ProductPage({ params }: Params) {
       </nav>
 
       <div className="mt-6 grid gap-10 lg:grid-cols-2">
-        {/* Gallery — Thridify 3D/AR trigger mounts here (slot must be relative/overlayable) */}
-        <div
-          data-tyashin-slot="product-gallery"
-          data-thridify-page-product-id={p.productKey}
-          className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-soft"
-        >
-          {p.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={p.image} alt={p.imageAlt} className="aspect-square w-full object-cover" />
-          ) : (
-            <div className="flex aspect-square w-full items-center justify-center text-muted-foreground">
-              <span className="text-sm">Interactive 3D model</span>
-            </div>
-          )}
+        {/* Gallery column: the media frame + the Thridify tab-switcher slot.
+            Both live in ONE grid child so the tabs land directly under the
+            gallery (its own row) instead of falling into the details column —
+            which is what forced Thridify's absolute overlay fallback (tabs
+            overlapping the experience's Customize control). See
+            data-thridify-slot below. */}
+        <div>
+          {/* Gallery — Thridify 3D/AR trigger mounts here (slot must be relative/overlayable) */}
+          <div
+            data-tyashin-slot="product-gallery"
+            data-thridify-page-product-id={p.productKey}
+            className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-soft"
+          >
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt={p.imageAlt} className="aspect-square w-full object-cover" />
+            ) : (
+              <div className="flex aspect-square w-full items-center justify-center text-muted-foreground">
+                <span className="text-sm">Interactive 3D model</span>
+              </div>
+            )}
+          </div>
+          {/* Thridify Images / 3D-View tab switcher renders here (in normal flow,
+              below the gallery), so the experience keeps its own space. Without
+              this slot the viewer re-homes the tabs as an absolute overlay on a
+              two-column PDP. */}
+          <div data-thridify-slot="viewer-tabs" className="mt-3" />
         </div>
 
         {/* Details */}
