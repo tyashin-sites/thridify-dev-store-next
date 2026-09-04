@@ -137,23 +137,13 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
         {/* Live 3D stage — exactly ONE live viewer mounts here at a time. */}
         <div className="order-1 lg:order-none">
           <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-border bg-surface shadow-lift">
-            {/* Poster floor: every slide's poster, cross-fading on advance. The
-                active slide's live viewer mounts on top of its (identical)
-                poster, so the SDK's poster↔3D handoff has no visible seam. */}
-            {slides.map((s, i) =>
-              s.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={s.productKey}
-                  src={s.image}
-                  alt={s.imageAlt}
-                  loading={i === 0 ? 'eager' : 'lazy'}
-                  aria-hidden={i !== active}
-                  className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
-                  style={{ opacity: i === active ? 1 : 0 }}
-                />
-              ) : null,
-            )}
+            {/* The POSTER is owned entirely by the SDK: the mount below carries
+                data-thridify-poster, and the SDK renders it poster-first then
+                dismisses it on the model's first frame. We must NOT render our
+                own poster <img> under the mount — the viewer canvas is
+                transparent, so a site poster bleeds THROUGH behind the 3D model
+                (the double-image bug). bg-surface on the frame covers the brief
+                gap before the SDK paints its poster. */}
 
             {/* THE single live mount. Keyed by productKey → a fresh node each
                 advance, so the SDK re-scan mounts it and the previous slide's
@@ -172,49 +162,50 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
               <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Live 3D · AR
             </span>
 
-            {/* Prev / next controls */}
-            {count > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={prev}
-                  aria-label="Previous experience"
-                  className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-border bg-background/85 p-2.5 text-foreground shadow-soft backdrop-blur transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m15 18-6-6 6-6" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={next}
-                  aria-label="Next experience"
-                  className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-border bg-background/85 p-2.5 text-foreground shadow-soft backdrop-blur transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
-                </button>
-              </>
-            )}
+            {/* Prev/next are NOT overlaid on the stage — they live in the
+                controls row below, so they never cover the experience or the
+                viewer's own control column (zoom / AR / share). */}
           </div>
 
-          {/* Dot controls */}
+          {/* Controls row — prev · dots · next — BELOW the stage, clear of the
+              experience and the viewer's controls. */}
           {count > 1 && (
-            <div className="mt-5 flex items-center justify-center gap-2.5" role="tablist" aria-label="Choose an experience">
-              {slides.map((s, i) => (
-                <button
-                  key={s.productKey}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === active}
-                  aria-label={`Show ${s.headline ?? s.name}`}
-                  onClick={() => go(i)}
-                  className={`h-2 rounded-full transition-all ${
-                    i === active ? 'w-7 bg-primary' : 'w-2 bg-border hover:bg-primary/50'
-                  }`}
-                />
-              ))}
+            <div className="mt-5 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={prev}
+                aria-label="Previous experience"
+                className="rounded-full border border-border bg-background p-2 text-foreground shadow-soft transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </button>
+              <div className="flex items-center gap-2.5" role="tablist" aria-label="Choose an experience">
+                {slides.map((s, i) => (
+                  <button
+                    key={s.productKey}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === active}
+                    aria-label={`Show ${s.headline ?? s.name}`}
+                    onClick={() => go(i)}
+                    className={`h-2 rounded-full transition-all ${
+                      i === active ? 'w-7 bg-primary' : 'w-2 bg-border hover:bg-primary/50'
+                    }`}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={next}
+                aria-label="Next experience"
+                className="rounded-full border border-border bg-background p-2 text-foreground shadow-soft transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
             </div>
           )}
         </div>
