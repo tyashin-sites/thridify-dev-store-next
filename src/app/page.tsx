@@ -1,27 +1,114 @@
 import { listProducts, listCategories, getStoreInfo, toView } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
+import { Hero3DCarousel, type HeroSlide } from '@/components/Hero3DCarousel';
 import { siteConfig } from '@/lib/site';
+import type { ProductView } from '@/lib/types';
 
 export const dynamic = "force-dynamic";
+
+// Curated hero line-up — an assortment ACROSS categories, one experience per
+// slide, favouring immersive scenes and strong hero objects. Referenced by
+// `productKey` (SKU || name, the id Thridify binds to); resolved against the
+// live catalog below, so a pick that vanishes from the store simply drops out.
+// The headline/blurb are showcase copy for the experience; the real product is
+// always one tap away via the slide's "Open this experience" link.
+const HERO_PICKS: { productKey: string; headline: string; blurb: string }[] = [
+  {
+    productKey: '01CD',
+    headline: 'Step inside the scene',
+    blurb: 'Walk a fully-modelled corridor in real time — room-scale 3D that turns a flat catalog into a place you can explore.',
+  },
+  {
+    productKey: 'sofa',
+    headline: 'The centrepiece, in your hands',
+    blurb: 'Spin the sofa, study the stitching, judge the scale — hero furniture you can inspect from every angle before you decide.',
+  },
+  {
+    productKey: 'Speaker',
+    headline: 'Sound you can see',
+    blurb: 'Rotate the speaker up close and read every detail — the kind of product story a single photo can never tell.',
+  },
+  {
+    productKey: 'island_Kitchen_Test',
+    headline: 'Design the kitchen around it',
+    blurb: 'Explore a full kitchen scene in interactive 3D, then place it in your own space with AR at true scale.',
+  },
+  {
+    productKey: 'Budweiser_02',
+    headline: 'Packaging that pops',
+    blurb: 'Turn the bottle in the light, read the label, feel the finish — packaging brought to life in real-time 3D.',
+  },
+];
+
+// Feature-section line-up (deliberately different from the hero) — a spread of
+// categories for the ProductCard grid. Resolved in order, then topped up with
+// any other in-stock, poster-bearing products so the grid is always full.
+const FEATURE_PICKS = [
+  'HeightAdjustableDesk',
+  'COSTA-CHAIR',
+  'Sound_Bar_01',
+  'Safelam',
+  '8SheetTable',
+  '001cd',
+  'almirah',
+  'Budweiser_01',
+];
+
+const FEATURE_COUNT = 8;
 
 export default async function HomePage() {
   const [store, categories, products] = await Promise.all([
     getStoreInfo(),
     listCategories(),
-    listProducts({ limit: 8 }),
+    listProducts({ limit: 100 }),
   ]);
-  const featured = products.map((p) => toView(p, categories, store.currency)).filter((p) => p.image);
+
+  const views = products.map((p) => toView(p, categories, store.currency));
+  const byKey = new Map<string, ProductView>(views.map((v) => [v.productKey, v]));
+
+  // Hero slides: only picks that resolve to a real product WITH a poster (the
+  // poster is the crash-safe floor + the SDK's poster↔3D handoff source).
+  const heroSlides: HeroSlide[] = HERO_PICKS.map((pick): HeroSlide | null => {
+    const v = byKey.get(pick.productKey);
+    if (!v || !v.image) return null;
+    return { ...v, headline: pick.headline, blurb: pick.blurb };
+  }).filter((s): s is HeroSlide => s !== null);
+
+  // Featured grid: curated order first, then fill from the rest (all with a
+  // poster image), never repeating a card.
+  const withImage = views.filter((v) => v.image);
+  const used = new Set<string>();
+  const featured: ProductView[] = [];
+  for (const key of FEATURE_PICKS) {
+    const v = byKey.get(key);
+    if (v && v.image && !used.has(v.slug)) {
+      featured.push(v);
+      used.add(v.slug);
+    }
+  }
+  for (const v of withImage) {
+    if (featured.length >= FEATURE_COUNT) break;
+    if (!used.has(v.slug)) {
+      featured.push(v);
+      used.add(v.slug);
+    }
+  }
+  const featuredGrid = featured.slice(0, FEATURE_COUNT);
 
   return (
     <>
-      {/* Hero */}
-      <section className="thr-gradient">
-        <div className="container-tight grid items-center gap-10 py-20 lg:grid-cols-2 lg:py-28">
-          <div>
+      {/* Hero — auto-advancing carousel of live 3D experiences (one live
+          viewer at a time). Falls back to the static intro if the catalog is
+          empty / unreachable. */}
+      {heroSlides.length > 0 ? (
+        <Hero3DCarousel slides={heroSlides} />
+      ) : (
+        <section className="thr-gradient">
+          <div className="container-tight py-20 lg:py-28">
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-primary">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Powered by Thridify 3D &amp; AR
             </span>
-            <h1 className="mt-5 text-4xl font-bold leading-[1.05] sm:text-5xl lg:text-6xl">
+            <h1 className="mt-5 max-w-2xl text-4xl font-bold leading-[1.05] sm:text-5xl lg:text-6xl">
               {siteConfig.tagline}
             </h1>
             <p className="mt-5 max-w-md text-lg leading-relaxed text-muted-foreground">
@@ -31,29 +118,35 @@ export default async function HomePage() {
               <a href="/products" className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:opacity-90">
                 Explore the store
               </a>
-              <a href={siteConfig.contactUrl} target="_blank" rel="noopener" className="rounded-full border border-border bg-background px-6 py-3 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary">
-                Contact Thridify
-              </a>
             </div>
           </div>
-          {featured[0] && (
-            <div className="relative">
-              <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-lift">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={featured[0].image} alt={featured[0].imageAlt} className="aspect-[4/3] w-full object-cover" />
-              </div>
-              <div className="absolute -bottom-4 -left-4 rounded-2xl border border-border bg-background/90 px-4 py-3 text-sm shadow-soft backdrop-blur">
-                <p className="font-semibold text-foreground">Spin it. Place it. Decide.</p>
-                <p className="text-muted-foreground">Every product in real-time 3D</p>
-              </div>
+        </section>
+      )}
+
+      {/* Featured products — the same ProductCard as the /products listing, with
+          3D enabled (live viewer on hover / poster on mobile). */}
+      {featuredGrid.length > 0 && (
+        <section className="container-tight py-16">
+          <div className="flex items-end justify-between">
+            <div>
+              <h2 className="text-2xl font-bold sm:text-3xl">Featured experiences</h2>
+              <p className="mt-2 max-w-lg text-muted-foreground">
+                Hover any card to bring it to life in 3D — then open it for the full experience and AR.
+              </p>
             </div>
-          )}
-        </div>
-      </section>
+            <a href="/products" className="shrink-0 text-sm font-semibold text-primary hover:underline">View all →</a>
+          </div>
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
+            {featuredGrid.map((p) => (
+              <ProductCard key={p.slug} p={p} enable3d />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Categories */}
       {categories.length > 0 && (
-        <section className="container-tight py-16">
+        <section className="container-tight pb-16">
           <div className="flex items-end justify-between">
             <h2 className="text-2xl font-bold sm:text-3xl">Browse by collection</h2>
             <a href="/products" className="text-sm font-semibold text-primary hover:underline">View all →</a>
@@ -72,19 +165,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Featured products */}
-      {featured.length > 0 && (
-        <section className="container-tight py-8 pb-20">
-          <h2 className="text-2xl font-bold sm:text-3xl">Featured</h2>
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
-            {featured.slice(0, 8).map((p) => (
-              <ProductCard key={p.slug} p={p} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* How it works */}
+      {/* How it works + CTA */}
       <section className="border-t border-border bg-surface/50">
         <div className="container-tight grid gap-8 py-16 sm:grid-cols-3">
           {[
@@ -98,6 +179,17 @@ export default async function HomePage() {
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{d}</p>
             </div>
           ))}
+        </div>
+        <div className="container-tight pb-20">
+          <div className="flex flex-col items-start justify-between gap-4 rounded-3xl border border-border bg-card p-8 shadow-soft sm:flex-row sm:items-center">
+            <div>
+              <h3 className="text-xl font-bold sm:text-2xl">Bring your catalog to life</h3>
+              <p className="mt-1 text-muted-foreground">Every product here is a live Thridify experience. Yours can be too.</p>
+            </div>
+            <a href={siteConfig.contactUrl} target="_blank" rel="noopener" className="shrink-0 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:opacity-90">
+              Contact Thridify
+            </a>
+          </div>
         </div>
       </section>
     </>
