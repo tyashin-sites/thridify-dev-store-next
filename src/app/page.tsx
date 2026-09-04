@@ -31,9 +31,13 @@ const HERO_PICKS: { productKey: string; headline: string; blurb: string }[] = [
     blurb: 'Spin the sofa, study the stitching, judge the scale — hero furniture you can inspect from every angle before you decide.',
   },
   {
-    productKey: 'VEVORRotisserieGrillwi',
-    headline: 'Built to be inspected',
-    blurb: 'Walk around the grill in real-time 3D — every knob, grate and finish — then drop it on your patio at true scale with AR.',
+    // NOTE: a hero pick needs BOTH a viewer-authorized experience AND a catalog
+    // poster (the filter below drops posterless picks). VEVORRotisserieGrillwi is
+    // viewer-authorized but has no catalog poster, so it silently dropped — this
+    // desk has both.
+    productKey: 'HeightAdjustableDesk',
+    headline: 'Built around how you work',
+    blurb: 'Raise and lower the desk in real-time 3D, check the frame and cable tray up close, then place it at your exact height with AR.',
   },
   {
     productKey: 'COSTA-CHAIR',
@@ -50,8 +54,9 @@ const HERO_PICKS: { productKey: string; headline: string; blurb: string }[] = [
 // Feature-section line-up (deliberately different from the hero) — a spread of
 // categories for the ProductCard grid. Resolved in order, then topped up with
 // any other in-stock, poster-bearing products so the grid is always full.
+// (HeightAdjustableDesk intentionally NOT here — it's a hero slide; the grid
+// backfills from the remaining catalog to stay full without repeating the hero.)
 const FEATURE_PICKS = [
-  'HeightAdjustableDesk',
   'COSTA-CHAIR',
   'Sound_Bar_01',
   'Safelam',
