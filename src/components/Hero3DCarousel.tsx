@@ -41,7 +41,7 @@ export interface HeroSlide extends ProductView {
   blurb?: string;
 }
 
-const AUTO_MS = 6000;
+const AUTO_MS = 7500;
 
 export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
   const count = slides.length;
@@ -133,10 +133,10 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
       onBlurCapture={() => setPaused(false)}
       onKeyDown={onKeyDown}
     >
-      <div className="container-tight grid items-center gap-10 py-14 lg:grid-cols-2 lg:py-20">
+      <div className="container-tight grid items-center gap-5 py-6 lg:grid-cols-2 lg:gap-10 lg:py-20">
         {/* Live 3D stage — exactly ONE live viewer mounts here at a time. */}
         <div className="order-1 lg:order-none">
-          <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-border bg-surface shadow-lift">
+          <div className="relative h-[42vh] max-h-[400px] min-h-[260px] w-full overflow-hidden rounded-3xl border border-border bg-surface shadow-lift lg:h-auto lg:aspect-square lg:max-h-none">
             {/* The POSTER is owned entirely by the SDK: the mount below carries
                 data-thridify-poster, and the SDK renders it poster-first then
                 dismisses it on the model's first frame. We must NOT render our
@@ -170,7 +170,7 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
           {/* Controls row — prev · dots · next — BELOW the stage, clear of the
               experience and the viewer's controls. */}
           {count > 1 && (
-            <div className="mt-5 flex items-center justify-center gap-4">
+            <div className="mt-3 flex items-center justify-center gap-4 lg:mt-5">
               <button
                 type="button"
                 onClick={prev}
@@ -217,22 +217,22 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             {slide.category ?? 'Featured experience'}
           </span>
-          <h1 className="mt-5 text-4xl font-bold leading-[1.05] sm:text-5xl lg:text-6xl">
+          <h1 className="mt-3 text-2xl font-bold leading-[1.1] sm:text-3xl lg:mt-5 lg:text-6xl lg:leading-[1.05]">
             {slide.headline ?? slide.name}
           </h1>
-          <p className="mt-5 max-w-md text-lg leading-relaxed text-muted-foreground">
+          <p className="mt-2 line-clamp-3 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base lg:mt-5 lg:line-clamp-none lg:text-lg">
             {slide.blurb ?? 'Spin it, zoom it, place it in your space — a real-time 3D & AR experience powered by Thridify.'}
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3 lg:mt-8">
             <a
               href={`/products/${slide.slug}`}
-              className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:opacity-90"
+              className="rounded-full bg-primary px-5 py-2.5 text-xs font-semibold text-primary-foreground shadow-soft transition hover:opacity-90 lg:px-6 lg:py-3 lg:text-sm"
             >
               Open this experience
             </a>
             <a
               href="/products"
-              className="rounded-full border border-border bg-background px-6 py-3 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary"
+              className="hidden rounded-full border border-border bg-background px-5 py-2.5 text-xs font-semibold text-foreground transition hover:border-primary hover:text-primary sm:inline-flex lg:px-6 lg:py-3 lg:text-sm"
             >
               Explore the store
             </a>

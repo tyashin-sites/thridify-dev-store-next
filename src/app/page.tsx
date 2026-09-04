@@ -12,6 +12,13 @@ export const dynamic = "force-dynamic";
 // live catalog below, so a pick that vanishes from the store simply drops out.
 // The headline/blurb are showcase copy for the experience; the real product is
 // always one tap away via the slide's "Open this experience" link.
+// NOTE: every key here MUST be a product that renders in the Thridify VIEWER for
+// this store's linked account — not merely present in the store catalog. Catalog
+// listing and viewer authorization are separate: a product can have a poster
+// (catalog) yet 403 in the viewer ("You are not authorized to access this
+// product"), which paints the poster with the error text on top. These five are
+// verified-authorized picks (Speaker / island_Kitchen_Test / Sound_Bar_* /
+// Safelam do NOT resolve in the viewer — do not use them here).
 const HERO_PICKS: { productKey: string; headline: string; blurb: string }[] = [
   {
     productKey: '01CD',
@@ -24,14 +31,14 @@ const HERO_PICKS: { productKey: string; headline: string; blurb: string }[] = [
     blurb: 'Spin the sofa, study the stitching, judge the scale — hero furniture you can inspect from every angle before you decide.',
   },
   {
-    productKey: 'Speaker',
-    headline: 'Sound you can see',
-    blurb: 'Rotate the speaker up close and read every detail — the kind of product story a single photo can never tell.',
+    productKey: 'VEVORRotisserieGrillwi',
+    headline: 'Built to be inspected',
+    blurb: 'Walk around the grill in real-time 3D — every knob, grate and finish — then drop it on your patio at true scale with AR.',
   },
   {
-    productKey: 'island_Kitchen_Test',
-    headline: 'Design the kitchen around it',
-    blurb: 'Explore a full kitchen scene in interactive 3D, then place it in your own space with AR at true scale.',
+    productKey: 'COSTA-CHAIR',
+    headline: 'Design you can circle',
+    blurb: 'Spin the chair, study the frame and the seat line, judge the proportions — design you can inspect from every angle.',
   },
   {
     productKey: 'Budweiser_02',
