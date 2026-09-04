@@ -1,12 +1,12 @@
 import { siteConfig } from '@/lib/site';
+import { Logo } from '@/components/Logo';
 
 export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/85 backdrop-blur-md">
       <div className="container-tight flex h-16 items-center justify-between gap-4">
-        <a href="/" className="flex items-center gap-2" aria-label={siteConfig.storeName}>
-          {/* Thridify wordmark */}
-          <img src="/brand/thridify-logo.png" alt="Thridify" className="h-7 w-auto" />
+        <a href="/" className="flex items-center" aria-label={siteConfig.storeName}>
+          <Logo className="h-7" />
         </a>
 
         <nav className="hidden items-center gap-8 md:flex">
