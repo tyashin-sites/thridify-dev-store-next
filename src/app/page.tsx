@@ -21,33 +21,30 @@ export const dynamic = "force-dynamic";
 // Safelam do NOT resolve in the viewer — do not use them here).
 const HERO_PICKS: { productKey: string; headline: string; blurb: string }[] = [
   {
-    productKey: '01CD',
+    // Full modular-kitchen scene — the most immersive "step into the room" pick.
+    productKey: '2319',
     headline: 'Step inside the scene',
-    blurb: 'Walk a fully-modelled corridor in real time — room-scale 3D that turns a flat catalog into a place you can explore.',
+    blurb: 'Explore a full modular kitchen in real time — room-scale 3D that turns a flat catalog into a place you can walk through.',
   },
   {
-    productKey: 'sofa',
+    productKey: '2150',
     headline: 'The centrepiece, in your hands',
-    blurb: 'Spin the sofa, study the stitching, judge the scale — hero furniture you can inspect from every angle before you decide.',
+    blurb: 'Spin the leather loveseat, study the stitching, judge the scale — hero furniture you can inspect from every angle before you decide.',
   },
   {
-    // NOTE: a hero pick needs BOTH a viewer-authorized experience AND a catalog
-    // poster (the filter below drops posterless picks). VEVORRotisserieGrillwi is
-    // viewer-authorized but has no catalog poster, so it silently dropped — this
-    // desk has both.
-    productKey: 'HeightAdjustableDesk',
-    headline: 'Built around how you work',
-    blurb: 'Raise and lower the desk in real-time 3D, check the frame and cable tray up close, then place it at your exact height with AR.',
-  },
-  {
-    productKey: 'COSTA-CHAIR',
+    productKey: '363',
     headline: 'Design you can circle',
-    blurb: 'Spin the chair, study the frame and the seat line, judge the proportions — design you can inspect from every angle.',
+    blurb: 'Circle the racing chair, read every contour and material — a product story a single flat photo can never tell.',
   },
   {
-    productKey: 'Budweiser_02',
-    headline: 'Packaging that pops',
-    blurb: 'Turn the bottle in the light, read the label, feel the finish — packaging brought to life in real-time 3D.',
+    productKey: '2045',
+    headline: 'Detail you can almost touch',
+    blurb: 'Turn the stand mixer in the light, catch the finish and the trim — everyday product, brought to life in real-time 3D.',
+  },
+  {
+    productKey: '2075',
+    headline: 'Look closer than a photo allows',
+    blurb: 'Zoom the solitaire until the facets catch the light — the kind of close inspection only live 3D can give a shopper.',
   },
 ];
 
@@ -57,13 +54,14 @@ const HERO_PICKS: { productKey: string; headline: string; blurb: string }[] = [
 // (HeightAdjustableDesk intentionally NOT here — it's a hero slide; the grid
 // backfills from the remaining catalog to stay full without repeating the hero.)
 const FEATURE_PICKS = [
-  'COSTA-CHAIR',
-  'Sound_Bar_01',
-  'Safelam',
-  '8SheetTable',
-  '001cd',
-  'almirah',
-  'Budweiser_01',
+  '364',            // Chesterfield sofa
+  '2109',           // Basket swing chair
+  '2119',           // Patterned wingback chair
+  '2137',           // Poliform platform bed
+  '2264',           // French-door refrigerator
+  'nasher_bag',     // Nasher terrazzo trolley
+  '2249',           // Holmes wrist watch
+  '2198',           // Nike Mercurial boots
 ];
 
 const FEATURE_COUNT = 8;
