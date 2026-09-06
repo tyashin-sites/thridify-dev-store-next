@@ -31,11 +31,18 @@ export function Card3DMedia({ p }: { p: ProductView }) {
 
     let activeView: Element | null = null;
     let pollId = 0;
+    // NOTE: use `visibility`, not `opacity`, to hide the poster. On this card the
+    // poster <img> sits directly beneath the live WebGL <model-viewer> layer, and
+    // an inline `opacity:0` (even `!important`) does not take effect there — the
+    // element stays painted. `visibility:hidden` reliably removes it while keeping
+    // layout, so restore-on-hover-out is instant and shift-free.
     const show = () => {
+      img.style.visibility = '';
       img.style.opacity = '1';
     };
     const hide = () => {
       img.style.opacity = '0';
+      img.style.visibility = 'hidden';
     };
 
     const waitFirstFrame = (view: Element) => {
