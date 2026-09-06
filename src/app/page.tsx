@@ -42,9 +42,11 @@ const HERO_PICKS: { productKey: string; headline: string; blurb: string }[] = [
     blurb: 'Turn the stand mixer in the light, catch the finish and the trim — everyday product, brought to life in real-time 3D.',
   },
   {
-    productKey: '2075',
-    headline: 'Look closer than a photo allows',
-    blurb: 'Zoom the solitaire until the facets catch the light — the kind of close inspection only live 3D can give a shopper.',
+    // Footwear — a distinct industry for the line-up (jewellery is held back
+    // until diamond/stone glitter renders well).
+    productKey: '2198',
+    headline: 'Made for the close-up',
+    blurb: 'Spin the boot, inspect the knit, the soleplate and every stud — footwear detail a flat product shot can never sell.',
   },
 ];
 
@@ -61,7 +63,7 @@ const FEATURE_PICKS = [
   '2264',           // French-door refrigerator
   'nasher_bag',     // Nasher terrazzo trolley
   '2249',           // Holmes wrist watch
-  '2198',           // Nike Mercurial boots
+  '2123',           // Hand-painted dowry chest (Nike moved to the hero)
 ];
 
 const FEATURE_COUNT = 8;
