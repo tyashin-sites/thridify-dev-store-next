@@ -54,13 +54,17 @@ export default async function ProductPage({ params }: Params) {
           <div
             data-tyashin-slot="product-gallery"
             data-thridify-page-product-id={p.productKey}
-            className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-soft"
+            // Portrait on phones (taller viewer), square on ≥sm. The FRAME owns
+            // the aspect ratio so the overlaid Thridify 3D viewer gets the extra
+            // mobile height too — otherwise a square frame leaves the model
+            // cramped and the customize tray overlays most of it.
+            className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl border border-border bg-surface shadow-soft sm:aspect-square"
           >
             {p.image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.image} alt={p.imageAlt} className="aspect-square w-full object-cover" />
+              <img src={p.image} alt={p.imageAlt} className="h-full w-full object-cover" />
             ) : (
-              <div className="flex aspect-square w-full items-center justify-center text-muted-foreground">
+              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                 <span className="text-sm">Interactive 3D model</span>
               </div>
             )}
