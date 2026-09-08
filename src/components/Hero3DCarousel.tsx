@@ -7,17 +7,35 @@
  *
  * CRASH-SAFETY (the one rule): this store crashes iPhones when too many live 3D
  * contexts co-exist, so the hero mounts AT MOST ONE live `<thridify-view>` at a
- * time. We do NOT stack every slide as a live viewer. Only the ACTIVE slide
- * renders the single live mount container (`data-thridify-product`); every other
- * slide is a plain poster `<img>`. On advance, React unmounts the previous
- * slide's live container (tearing down its WebGL context) and mounts the next —
- * one in, one out.
+ * time. We do NOT stack every slide as a live viewer. Only the settled ACTIVE
+ * slide renders the single live mount container (`data-thridify-product`); every
+ * other slide — and the active slide WHILE a transition is animating — is a
+ * plain poster `<img>`. On advance, React unmounts the previous slide's live
+ * container (tearing down its WebGL context) and mounts the next — one in, one
+ * out.
  *
- * The live container is KEYED by the active productKey so React always creates a
- * fresh DOM node on advance (never carrying the SDK's `data-thridify-mounted`
- * marker), which lets a re-scan pick it up. Because we only ever render this one
- * container, there is exactly one `[data-thridify-product]` element in the hero
- * at any instant.
+ * SLIDE TRANSITION (§ user feedback #3): all slides render their poster in a
+ * horizontal filmstrip `track` that translates by `-active * 100%`, so a change
+ * of slide ANIMATES sideways — the motion signals "there are neighbours you can
+ * go back/forward to". The single live viewer is mounted only once the track
+ * has SETTLED (onTransitionEnd), so we never animate a live WebGL canvas and we
+ * keep the one-live-at-a-time rule. The live model area stays interactive for
+ * rotate/zoom; navigation between experiences is via the animated transition +
+ * the prev/next/dots below (deliberately not finger-drag OVER the model, which
+ * would fight model-viewer's own orbit gesture).
+ *
+ * AUTO-ADVANCE, load-gated (§ feedback #1): the dwell timer for a slide does NOT
+ * start until that slide's model is actually live — we wait for the per-mount
+ * `thridify:commands-ready` DOM event (captured on the stage; the SDK fires it
+ * once the model has loaded and the poster→3D handoff is armed), with a safety
+ * cap so a slow/failed load can't stall the carousel forever. So every slide
+ * gets a guaranteed AUTO_MS of VIEWING time after it becomes interactive, not a
+ * fixed budget that the load time eats into.
+ *
+ * PAUSE-ON-INTERACTION (§ feedback #2): any manual navigation (arrows, dots,
+ * keyboard) suspends auto-advance for RESUME_MS of no further interaction, so a
+ * user studying one experience is not yanked to the next. Auto-advance resumes
+ * only after that quiet window.
  *
  * SDK seam (THRIDIFY-EXPERIENCE-MODES-PLAN §2/§5): the platform loader injects
  * the Thridify SDK (with the account) via /tyashin-runtime.js. It scans for
@@ -25,10 +43,8 @@
  * `data-thridify-poster` for the poster↔3D handoff and dismissing the poster on
  * first frame. `data-thridify-mode="instant"` asks for full 3D immediately (the
  * SDK governor auto-downgrades to `ready` on mobile). React swaps the active
- * slide, so after each advance we must nudge the SDK to mount the newly-rendered
- * container: `window.Thridify.scan()` in an effect keyed on the active index,
- * guarded for SSR + async SDK load (poll briefly and also listen for
- * `thridify:sdk-ready`).
+ * slide, so after each advance settles we nudge the SDK to mount the newly
+ * rendered container: `window.Thridify.scan()`, guarded for SSR + async load.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -41,15 +57,28 @@ export interface HeroSlide extends ProductView {
   blurb?: string;
 }
 
-const AUTO_MS = 7500;
+/** Guaranteed viewing time on a slide AFTER its model is live. */
+const AUTO_MS = 8000;
+/** After manual nav, stay put until this long passes with no interaction. */
+const RESUME_MS = 90000;
+/** If the model never signals "live", advance anyway after this cap. */
+const READY_CAP_MS = 9000;
+/** Track slide animation duration — keep in sync with the CSS below. */
+const SLIDE_MS = 450;
 
 export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
   const count = slides.length;
   const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [reduced, setReduced] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  // The active slide's model is live (poster→3D handoff done) → dwell may start.
+  const [ready, setReady] = useState(false);
+  // A sideways transition is animating → suppress the live mount until settled.
+  const [transitioning, setTransitioning] = useState(false);
+  // Wall-clock until which auto-advance is suspended after a manual interaction.
+  const [pausedUntil, setPausedUntil] = useState(0);
 
-  // Respect prefers-reduced-motion — no auto-advance when set.
+  // Respect prefers-reduced-motion — no auto-advance AND no slide animation.
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => setReduced(mq.matches);
@@ -59,24 +88,69 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
   }, []);
 
   const go = useCallback(
-    (i: number) => setActive(((i % count) + count) % count),
-    [count],
+    (i: number) => {
+      const n = ((i % count) + count) % count;
+      setActive((prev) => {
+        if (prev !== n) {
+          setReady(false);
+          if (!reduced) setTransitioning(true);
+        }
+        return n;
+      });
+    },
+    [count, reduced],
   );
-  const next = useCallback(() => go(active + 1), [go, active]);
-  const prev = useCallback(() => go(active - 1), [go, active]);
+  // Manual navigation pauses auto-advance for a quiet window (feedback #2).
+  const goManual = useCallback(
+    (i: number) => {
+      setPausedUntil(Date.now() + RESUME_MS);
+      go(i);
+    },
+    [go],
+  );
+  const nextManual = useCallback(() => goManual(active + 1), [goManual, active]);
+  const prevManual = useCallback(() => goManual(active - 1), [goManual, active]);
 
-  // Auto-advance ~6s; paused on hover/focus and when reduced-motion is set.
+  // Load-gate: the active model is "live" when the SDK fires
+  // `thridify:commands-ready` on the mounted <thridify-view>. It is non-bubbling,
+  // so we capture it on the stage. Reset on every advance; cap so a slow/failed
+  // load still lets the carousel move on. (feedback #1)
+  const stageRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (reduced || paused || count <= 1) return;
-    const t = window.setTimeout(() => setActive((a) => (a + 1) % count), AUTO_MS);
+    if (transitioning) return; // wait until the live mount actually exists
+    let done = false;
+    const markReady = () => {
+      if (!done) {
+        done = true;
+        setReady(true);
+      }
+    };
+    const stage = stageRef.current;
+    stage?.addEventListener('thridify:commands-ready', markReady, true);
+    const cap = window.setTimeout(markReady, READY_CAP_MS);
+    return () => {
+      stage?.removeEventListener('thridify:commands-ready', markReady, true);
+      window.clearTimeout(cap);
+    };
+  }, [active, transitioning]);
+
+  // Auto-advance: only once the active model is live, never while hovered,
+  // reduced-motion, mid-transition, or inside the post-interaction quiet window.
+  useEffect(() => {
+    if (reduced || hovering || count <= 1 || !ready || transitioning) return;
+    const delay = Math.max(AUTO_MS, pausedUntil - Date.now());
+    const t = window.setTimeout(() => {
+      if (Date.now() < pausedUntil) return; // still paused → re-armed by state
+      go(active + 1);
+    }, delay);
     return () => window.clearTimeout(t);
-  }, [active, paused, reduced, count]);
+  }, [active, ready, transitioning, reduced, hovering, count, pausedUntil, go]);
 
-  // Scan-on-advance: after the active slide changes, let the SDK mount the
-  // newly-rendered live container. Guard for SSR + async SDK load: poll briefly
-  // for window.Thridify and also react to a late `thridify:sdk-ready`.
+  // Scan-on-settle: once a transition ends and the live container is rendered,
+  // let the SDK mount it. Poll briefly for window.Thridify and react to a late
+  // `thridify:sdk-ready`.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || transitioning) return;
     let cancelled = false;
     let tries = 0;
     const scan = () => {
@@ -105,16 +179,16 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
       cancelled = true;
       window.removeEventListener('thridify:sdk-ready', onReady);
     };
-  }, [active]);
+  }, [active, transitioning]);
 
   // Keyboard: left/right arrows move between slides when the carousel has focus.
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      next();
+      nextManual();
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      prev();
+      prevManual();
     }
   };
 
@@ -127,53 +201,82 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
       role="region"
       aria-roledescription="carousel"
       aria-label="Featured Thridify 3D experiences"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={() => setPaused(false)}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      onFocusCapture={() => setHovering(true)}
+      onBlurCapture={() => setHovering(false)}
       onKeyDown={onKeyDown}
     >
       <div className="container-tight grid items-center gap-5 py-6 lg:grid-cols-2 lg:gap-10 lg:py-20">
         {/* Live 3D stage — exactly ONE live viewer mounts here at a time. */}
         <div className="order-1 lg:order-none">
-          <div className="relative h-[42vh] max-h-[400px] min-h-[260px] w-full overflow-hidden rounded-3xl border border-border bg-surface shadow-lift lg:h-auto lg:aspect-square lg:max-h-none">
-            {/* The POSTER is owned entirely by the SDK: the mount below carries
-                data-thridify-poster, and the SDK renders it poster-first then
-                dismisses it on the model's first frame. We must NOT render our
-                own poster <img> under the mount — the viewer canvas is
-                transparent, so a site poster bleeds THROUGH behind the 3D model
-                (the double-image bug). bg-surface on the frame covers the brief
-                gap before the SDK paints its poster. */}
-
-            {/* THE single live mount. Keyed by productKey → a fresh node each
-                advance, so the SDK re-scan mounts it and the previous slide's
-                live context is torn down. This is the one-live-at-a-time seam. */}
+          <div
+            ref={stageRef}
+            className="relative h-[42vh] max-h-[400px] min-h-[260px] w-full overflow-hidden rounded-3xl border border-border bg-surface shadow-lift lg:h-auto lg:aspect-square lg:max-h-none"
+          >
+            {/* Filmstrip track — one cell per slide, translated by the active
+                index so an advance ANIMATES sideways (feedback #3). Only the
+                settled active cell hosts the single live mount; every cell
+                otherwise shows its poster. */}
             <div
-              key={slide.productKey}
-              data-thridify-product={slide.productKey}
-              data-thridify-mode="instant"
-              {...(slide.image ? { 'data-thridify-poster': slide.image } : {})}
-              className="absolute inset-0"
-              aria-label={`Interactive 3D — ${slide.name}`}
-            />
+              className="flex h-full w-full"
+              style={{
+                transform: `translateX(-${active * 100}%)`,
+                transition: reduced ? 'none' : `transform ${SLIDE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+              }}
+              onTransitionEnd={(e) => {
+                if (e.propertyName === 'transform') setTransitioning(false);
+              }}
+            >
+              {slides.map((s, i) => {
+                const isLive = i === active && !transitioning;
+                return (
+                  <div key={s.productKey} className="relative h-full w-full shrink-0">
+                    {/* Poster for the slide animation. Hidden on the active cell
+                        ONCE its live mount exists — the viewer canvas is
+                        transparent and the SDK paints its own poster, so leaving
+                        ours behind would bleed through (double-image bug). */}
+                    {!isLive && s.image && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={s.image}
+                        alt={s.imageAlt || s.name}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        loading={i === 0 ? 'eager' : 'lazy'}
+                        draggable={false}
+                      />
+                    )}
+                    {/* THE single live mount. Keyed by productKey → a fresh node
+                        each advance, so the SDK re-scan mounts it and the
+                        previous slide's live context is torn down. */}
+                    {isLive && (
+                      <div
+                        key={s.productKey}
+                        data-thridify-product={s.productKey}
+                        data-thridify-mode="instant"
+                        {...(s.image ? { 'data-thridify-poster': s.image } : {})}
+                        className="absolute inset-0"
+                        aria-label={`Interactive 3D — ${s.name}`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
             {/* 3D · AR badge */}
             <span className="pointer-events-none absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1 text-[11px] font-semibold text-primary shadow-soft backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Live 3D · AR
             </span>
-
-            {/* Prev/next are NOT overlaid on the stage — they live in the
-                controls row below, so they never cover the experience or the
-                viewer's own control column (zoom / AR / share). */}
           </div>
 
           {/* Controls row — prev · dots · next — BELOW the stage, clear of the
-              experience and the viewer's controls. */}
+              experience and the viewer's own control column. */}
           {count > 1 && (
             <div className="mt-3 flex items-center justify-center gap-4 lg:mt-5">
               <button
                 type="button"
-                onClick={prev}
+                onClick={prevManual}
                 aria-label="Previous experience"
                 className="rounded-full border border-border bg-background p-2 text-foreground shadow-soft transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
@@ -189,7 +292,7 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
                     role="tab"
                     aria-selected={i === active}
                     aria-label={`Show ${s.headline ?? s.name}`}
-                    onClick={() => go(i)}
+                    onClick={() => goManual(i)}
                     className={`h-2 rounded-full transition-all ${
                       i === active ? 'w-7 bg-primary' : 'w-2 bg-border hover:bg-primary/50'
                     }`}
@@ -198,7 +301,7 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
               </div>
               <button
                 type="button"
-                onClick={next}
+                onClick={nextManual}
                 aria-label="Next experience"
                 className="rounded-full border border-border bg-background p-2 text-foreground shadow-soft transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
