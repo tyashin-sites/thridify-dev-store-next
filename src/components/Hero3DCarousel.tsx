@@ -87,19 +87,28 @@ export function Hero3DCarousel({ slides }: { slides: HeroSlide[] }) {
     return () => mq.removeEventListener('change', sync);
   }, []);
 
-  const go = useCallback(
-    (i: number) => {
-      const n = ((i % count) + count) % count;
-      setActive((prev) => {
-        if (prev !== n) {
-          setReady(false);
-          if (!reduced) setTransitioning(true);
-        }
-        return n;
-      });
-    },
-    [count, reduced],
-  );
+  const go = useCallback((i: number) => setActive(((i % count) + count) % count), [count]);
+
+  // On slide change: reset the load-gate and run a bounded slide transition.
+  // The TIMEOUT is the authoritative end of the transition — a missed
+  // `transitionend` must never strand `transitioning` at true, which would
+  // suppress the single live mount forever (regression seen on devdemo).
+  // `onTransitionEnd` on the track just clears it a touch earlier when it fires.
+  const firstRenderRef = useRef(true);
+  useEffect(() => {
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      return; // slide 0 mounts live immediately, no transition
+    }
+    setReady(false);
+    if (reduced) {
+      setTransitioning(false);
+      return;
+    }
+    setTransitioning(true);
+    const t = window.setTimeout(() => setTransitioning(false), SLIDE_MS + 60);
+    return () => window.clearTimeout(t);
+  }, [active, reduced]);
   // Manual navigation pauses auto-advance for a quiet window (feedback #2).
   const goManual = useCallback(
     (i: number) => {
