@@ -7,7 +7,6 @@ const SITES_HOST = `https://${PROJECT_SLUG}.sites.tyashin.com`;
 const nextConfig = {
   images: { remotePatterns: [{ protocol: 'https' as const, hostname: '**' }] },
   typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
   env: {
     NEXT_PUBLIC_TYASHIN_API_KEY: process.env.TYASHIN_API_KEY || 'ak_a8CdSleuHevXEhKQveUQwWCNRgenlq4O',
     NEXT_PUBLIC_TYASHIN_API_URL: process.env.TYASHIN_API_URL || 'https://website-api.tyashin.com',
